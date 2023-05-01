@@ -10,20 +10,20 @@ import seaborn as sns
 import h5py
 
 # Set Image Directory (change this to accomodate yourself)
-main_dir = '/Users/blakecurtsinger/Desktop/BZAN554/Group_Assignments/group_assignment_3/SVHN'
-train_dir = main_dir + '/train'
-test_dir = main_dir + '/test'
+main_dir = os.path.join(os.path.expanduser('~'), 'Desktop', 'BZAN554', 'Group_Assignments', 'group_assignment_3', 'SVHN')
+train_dir = os.path.join(main_dir, 'train')
+test_dir = os.path.join(main_dir, 'test')
 
 ## PREP METADATA
 
 # rename .json files
-os.rename(main_dir + "/train/digitStruct.json", main_dir + "/train/digitStruct_train.json")
-os.rename(main_dir + "/test/digitStruct.json", main_dir + "/test/digitStruct_test.json")
+os.rename(os.path.join(main_dir, "train", "digitStruct.json"), os.path.join(main_dir, "train", "digitStruct_train.json"))
+os.rename(os.path.join(main_dir, "test", "digitStruct.json"), os.path.join(main_dir, "test", "digitStruct_test.json"))
 
 # Set directories to move .json files
-source_train = main_dir + "/train/digitStruct_train.json"
-source_test = main_dir + "/test/digitStruct_test.json"
-destination = main_dir + "/metadata"
+source_train = os.path.join(main_dir, 'train', 'digitStruct_train.json')
+source_test = os.path.join(main_dir, 'test', 'digitStruct_test.json')
+destination = os.path.join(main_dir, 'metadata')
 
 # Make metadata folder, move .json files
 os.makedirs(destination, exist_ok=True)
@@ -64,7 +64,7 @@ def display_boxes(img, bounding_boxes):
 
 
 # Select an image and the corresponding boxes
-image = train_dir + '/1.png'
+image = os.path.join(train_dir, '1.png')
 image_bounding_boxes = metadata_train[0]['boxes']
      
 # Display image with bounding boxes
@@ -86,7 +86,7 @@ def dict_to_df(image_bounding_boxes, path):
             
             # Store a dict with the file and bounding box info
             boxes.append({
-                    'filename': path + "/" + image['filename'],
+                    'filename': os.path.join(path, image['filename']),
                     'label': bbox['label'],
                     'width': bbox['width'],
                     'height': bbox['height'],
@@ -98,7 +98,7 @@ def dict_to_df(image_bounding_boxes, path):
 
 
 # Save bounding box data to csv
-bbox_file = main_dir + '/bounding_boxes.csv'
+bbox_file = os.path.join(main_dir, 'bounding_boxes.csv')
 
 if not os.path.isfile(bbox_file):
     
@@ -168,7 +168,7 @@ def display_bbox(image_path, bbox):
 
 
 # Select a image and bounding box
-image = train_dir + "/1.png"
+image = os.path.join(train_dir, "1.png")
 bbox = df[df["filename"] == image]
 
 # Display image
@@ -187,7 +187,7 @@ df['y1'] = (df['y1'] + df['y_inc']).astype('int')
 
 
 # Select a image and bounding box
-image = train_dir + "/1.png"
+image = os.path.join(train_dir, "1.png")
 bbox = df[df["filename"] == image]
 
 # Display image
@@ -210,8 +210,8 @@ def get_img_sizes(folder):
     
     # Get image size of every individual image
     for image in images:
-        w, h = get_img_size(folder + "/" + image)
-        image_size = {'filename': folder + "/" + image, 'image_width': w, 'image_height': h}
+        w, h = get_img_size(os.path.join(folder, image))
+        image_size = {'filename': os.path.join(folder, image), 'image_width': w, 'image_height': h}
         image_sizes.append(image_size)
         
     # Return results as a pandas DataFrame
@@ -245,7 +245,7 @@ print("Combined", df.shape)
 del image_sizes
 
 # Store checkpoint
-df.to_csv(main_dir + "/image_data.csv", index=False)
+df.to_csv(os.path.join(main_dir, "image_data.csv"), index=False)
 #df = pd.read_csv('data/image_data.csv')
 
 df.head()
@@ -262,7 +262,7 @@ df.head()
 # Check by replotting the image from above
 
 # Select the dataframe row corresponding to our image
-image = train_dir + "/1.png"
+image = os.path.join(train_dir, "1.png")
 bbox = df[df.filename == image]
 print(bbox)
 # Display image
@@ -437,7 +437,7 @@ print('Validation', X_val.shape, y_val.shape)
 
 ##Store un-processed image datasets to disk
 # Create file
-h5f = h5py.File(main_dir + '/SVHN_multi_digit_rgb.h5', 'w')
+h5f = h5py.File(os.path.join(main_dir, 'SVHN_multi_digit_rgb.h5'), 'w')
 
 # Store the datasets
 h5f.create_dataset('X_train', data=X_train)
@@ -478,7 +478,7 @@ plt.show()
 
 ##Save pre-processed images
 # Create file
-h5f = h5py.File(main_dir + '/SVHN_multi_digit_norm_grayscale.h5', 'w')
+h5f = h5py.File(os.path.join(main_dir, 'SVHN_multi_digit_norm_grayscale.h5'), 'w')
 
 # Store the datasets
 h5f.create_dataset('X_train', data=train_norm)
