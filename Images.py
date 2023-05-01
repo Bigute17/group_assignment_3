@@ -3,15 +3,17 @@ import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 from keras.utils import np_utils
+import random
+import os
 
 # Set Image Directory (change this to accomodate yourself)
-main_dir = '/Users/blakecurtsinger/Desktop/BZAN554/Group_Assignments/group_assignment_3/SVHN'
-train_dir = main_dir + '/train'
-test_dir = main_dir + '/test'
+main_dir = os.path.join(os.path.expanduser('~'), 'Desktop', 'BZAN554', 'Group_Assignments', 'group_assignment_3', 'SVHN')
+train_dir = os.path.join(main_dir, 'train')
+test_dir = os.path.join(main_dir, 'test')
 
 ##Load pre-processed data
 # Open the HDF5 file containing the datasets
-with h5py.File(main_dir + '/SVHN_multi_digit_norm_grayscale.h5','r') as h5f:
+with h5py.File(os.path.join(main_dir, 'SVHN_multi_digit_norm_grayscale.h5'),'r') as h5f:
     X_train = h5f['X_train'][:]
     y_train = h5f['y_train'][:]
     X_val = h5f['X_val'][:]
@@ -133,3 +135,23 @@ model.fit(x=X_train,
             patience = 3
         )
     ])
+
+##Predictions
+test_predictions = model.predict(X_test)
+test_predictions[0][0]
+print(np.argmax(test_predictions[0][0]))
+
+
+for i in random.sample(range(0,10000),5):
+    
+    actual_labels = []
+    predicted_labels = []
+    plt.figure()
+    plt.imshow(X_test[i])
+    plt.show()
+    for j in range(0,5):
+        actual_labels.append(np.argmax(y_test[j][i]))
+        predicted_labels.append(np.argmax(test_predictions[j][i]))
+        
+    print("Actual labels: {}".format(actual_labels))
+    print("Predicted labels: {}\n".format(predicted_labels))
