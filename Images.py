@@ -6,7 +6,7 @@ from keras.utils import np_utils
 import random
 import os
 
-# Set Image Directory (change this to accomodate yourself)
+# Set Image Directory (change this to accomodate yourself!)
 main_dir = os.path.join(os.path.expanduser('~'), 'Desktop', 'BZAN554', 'Group_Assignments', 'group_assignment_3', 'SVHN')
 train_dir = os.path.join(main_dir, 'train')
 test_dir = os.path.join(main_dir, 'test')
