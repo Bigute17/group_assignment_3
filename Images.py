@@ -82,24 +82,31 @@ y_test = convert_labels(y_test)
 y_val = convert_labels(y_val)
 
 np.shape(y_train[0])
-
+y_train[0][0]
 
 #Conv layers requires 4 dimensional input (i.e., if we input three dimensions and add batch dim we get 4D)
 inputs = tf.keras.layers.Input(shape=(32,32,1), name='input') 
-#Conv2D layer (2D does not refer to gray scale (a PET scan would be 3D))
-x = tf.keras.layers.Conv2D(filters=64,kernel_size = 7, strides = 1, padding = "same", activation = "relu")(inputs)
-#MaxPooling2D: pool_size is window size over which to take the max
+x = tf.keras.layers.Conv2D(filters=48,kernel_size = 3, strides = 1, padding = "same", activation = "relu")(inputs)
+x = tf.keras.layers.Conv2D(filters=64,kernel_size = 3, strides = 1, padding = "same", activation = "relu")(x)
 x = tf.keras.layers.MaxPooling2D(pool_size = 2, strides = 2, padding = "valid")(x)
+x = tf.keras.layers.BatchNormalization()(x)
 x = tf.keras.layers.Conv2D(filters=128,kernel_size = 3, strides = 1, padding = "same", activation = "relu")(x)
-x = tf.keras.layers.Conv2D(filters=128,kernel_size = 3, strides = 1, padding = "same", activation = "relu")(x)
+x = tf.keras.layers.Conv2D(filters=160,kernel_size = 3, strides = 1, padding = "same", activation = "relu")(x)
 x = tf.keras.layers.MaxPooling2D(pool_size = 2, strides = 2, padding = "valid")(x)
-x = tf.keras.layers.Conv2D(filters=256,kernel_size = 3, strides = 1, padding = "same", activation = "relu")(x)
-x = tf.keras.layers.Conv2D(filters=256,kernel_size = 3, strides = 1, padding = "same", activation = "relu")(x)
+x = tf.keras.layers.BatchNormalization()(x)
+x = tf.keras.layers.Conv2D(filters=192,kernel_size = 3, strides = 1, padding = "same", activation = "relu")(x)
+x = tf.keras.layers.Conv2D(filters=192,kernel_size = 3, strides = 1, padding = "same", activation = "relu")(x)
 x = tf.keras.layers.MaxPooling2D(pool_size = 2, strides = 2, padding = "valid")(x)
+x = tf.keras.layers.BatchNormalization()(x)
+x = tf.keras.layers.Conv2D(filters=210,kernel_size = 3, strides = 1, padding = "same", activation = "relu")(x)
+x = tf.keras.layers.Conv2D(filters=210,kernel_size = 3, strides = 1, padding = "same", activation = "relu")(x)
+x = tf.keras.layers.MaxPooling2D(pool_size = 2, strides = 2, padding = "valid")(x)
+x = tf.keras.layers.BatchNormalization()(x)
 #dense layers expect 1D array of features for each instance so we need to flatten.
 x = tf.keras.layers.Flatten()(x)
-x = tf.keras.layers.Dense(128, activation = 'relu')(x)
-x = tf.keras.layers.Dense(64, activation = 'relu')(x)
+x = tf.keras.layers.Dense(3072, activation = 'relu')(x)
+x = tf.keras.layers.Dense(3072, activation = 'relu')(x)
+x = tf.keras.layers.Dropout(0.5)(x)
 yhat1 = tf.keras.layers.Dense(11, activation = 'softmax', name = "yhat1")(x)
 yhat2 = tf.keras.layers.Dense(11, activation = 'softmax', name = "yhat2")(x)
 yhat3 = tf.keras.layers.Dense(11, activation = 'softmax', name = "yhat3")(x)
@@ -118,10 +125,13 @@ model.summary()
 #Compile model
 model.compile(loss = "categorical_crossentropy", optimizer = tf.keras.optimizers.Adam(learning_rate = 0.001))
 
+checkpoint_filepath = os.path.join(main_dir, "SVHNModel.h5")
+#model = tf.keras.models.load_model(checkpoint_filepath)
+
 #Fit model
 model.fit(x=X_train,
           y=y_train,
-          epochs=10,
+          epochs=50,
           batch_size=32,
           validation_data=(X_val, y_val),
               callbacks = [
@@ -133,14 +143,21 @@ model.fit(x=X_train,
         tf.keras.callbacks.ReduceLROnPlateau(
             monitor = "val_loss",
             patience = 3
-        )
-    ])
+        ),
+        tf.keras.callbacks.ModelCheckpoint(
+        filepath=checkpoint_filepath,
+        save_weights_only=True,
+        monitor='val_loss',
+        mode='min',
+        save_best_only=True
+        )])
+
+model.save(checkpoint_filepath)
 
 ##Predictions
 test_predictions = model.predict(X_test)
 test_predictions[0][0]
 print(np.argmax(test_predictions[0][0]))
-
 
 for i in random.sample(range(0,10000),5):
     
@@ -148,10 +165,46 @@ for i in random.sample(range(0,10000),5):
     predicted_labels = []
     plt.figure()
     plt.imshow(X_test[i])
-    plt.show()
     for j in range(0,5):
         actual_labels.append(np.argmax(y_test[j][i]))
         predicted_labels.append(np.argmax(test_predictions[j][i]))
         
+    plt.title("Actual: {}\nPredicted: {}".format(actual_labels, predicted_labels))
+    plt.show()
     print("Actual labels: {}".format(actual_labels))
-    print("Predicted labels: {}\n".format(predicted_labels))
+    print("Predicted labels: {}\n".format(predicted_labels)) 
+    
+    
+    
+def calculate_acc(predictions,real_labels):
+    
+    individual_counter = 0
+    global_sequence_counter = 0
+    coverage_counter = 0
+    confidence = 0.7
+    for i in range(0,len(predictions[0])):
+        # Reset sequence counter at the start of each image
+        sequence_counter = 0 
+        
+        for j in range(0,5):
+            
+            if np.argmax(predictions[j][i]) == np.argmax(real_labels[j][i]):
+                individual_counter += 1
+                sequence_counter += 1
+            if predictions[j][i][np.argmax(predictions[j][i])] >= confidence:
+                coverage_counter += 1
+        
+        if sequence_counter == 5:
+            global_sequence_counter += 1
+         
+    ind_accuracy = individual_counter / float(len(predictions[0]) * 5)
+    global_accuracy = global_sequence_counter / float(len(predictions[0]))
+    coverage = coverage_counter / float(len(predictions[0]) * 5)
+    
+    return ind_accuracy,global_accuracy, coverage
+
+ind_acc, glob_acc, coverage = calculate_acc(test_predictions, y_test)
+
+print("The individual accuracy is {} %".format(ind_acc * 100))
+print("The sequence prediction accuracy is {} %".format(glob_acc * 100))
+print("The coverage is {} %".format(coverage * 100))
